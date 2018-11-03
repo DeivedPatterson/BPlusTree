@@ -18,3 +18,4 @@ struct ObjException ListRemoveException = {.message = "Exception in list removal
 struct ObjException ListInsertTopException = {.message = "Exception in the insert operation at the beginning of the list. List with Limited Property.", .code = __ListInsertTopException__};
 struct ObjException ListInsertBottomException = {.message = "Exception in the insert operation at the end of the list. List with Limited Property.", .code = __ListInsertBottomException__};
 struct ObjException ListInsertException = {.message = "Exception in the insert operation in the list. List with Limited Property.", .code = __ListInsertException__};
+struct ObjException GetCurrentPositionStreamException  = {.message = "Get Position Stream Exception", .code = __GetCurrentPositionStreamException__};

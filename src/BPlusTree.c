@@ -2,6 +2,7 @@
 #include "../include/Exception.h"
 #include "../include/Typedefs.h"
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -16,17 +17,18 @@
 
 typedef int32_t Page[M_KEY + M_POINTER];
 
-static enum State
+typedef enum State
 {
-	LEAVE,
+	LEAF,
 	ROOT
 }STATE;
 
-typedef struct BTreePage
+typedef struct BTreeNode
 {
 	Page block;
-	int size;
-}BTreePage;
+	int items;
+	bool leaf;
+}BTreeNode;
 
 
 typedef struct __BPlusTree
@@ -39,12 +41,32 @@ typedef struct __BPlusTree
 	int sizeData;
 }*ptrBPlusTree;
 
+typedef struct MetaData
+{
+	Address nextAddressAvailable;
+	STATE stat;
+}MetaData;
 
+static BTreeNode newEmptyNode(void)
+{
+	unsigned i;
+	BTreeNode newNode;
+
+	for(i = 0; i < (M_POINTER + M_KEY); i++)
+	{
+		newNode.block[i] = None;
+	}
+	newNode.leaf = true;
+	newNode.items = 0;
+
+	return newNode;
+}
 
 BPlusTree newBPlusTree(int sizeData)
 {
 	ptrBPlusTree newTree = NULL;
-	BTreePage dpage;
+	MetaData mdata;
+	BTreeNode dpage;
 	unsigned i;
 	uint32_t res = None;
 
@@ -64,10 +86,16 @@ BPlusTree newBPlusTree(int sizeData)
 			{
 				dpage.block[i] = None;
 			}
-			dpage.size = 0;
+			dpage.items = 0;
+			dpage.leaf = true;
+			mdata.nextAddressAvailable = None;
+			mdata.stat = LEAF;
 
-			FileWrite(&dpage, sizeof(BTreePage), 1, newTree->data, res);
-			FileWrite(&STATE, sizeof(enum State), 1, newTree->metadata, res);
+			FileWrite(&dpage, sizeof(BTreeNode), 1, newTree->index, res);
+			FileWrite(&mdata, sizeof(MetaData), 1, newTree->metadata, res);
+
+			//FileClose(newTree->data);
+			//FileClose(newTree->metadata);
 
 		}
 		else
@@ -87,7 +115,9 @@ void InsertBPlusTree(BPlusTree bpTree, Object obj)
 {
 	Byte *data;
 	uint32_t key;
-	BTreePage page;
+	BTreeNode page;
+	BTreeNode newPage;
+	MetaData mdata;
 	int res = None;
 	uint32_t i;
 
@@ -98,12 +128,35 @@ void InsertBPlusTree(BPlusTree bpTree, Object obj)
 
 	key = *((uint32_t*)obj);
 
+	ReWind(CBTree(bpTree)->index);
+	ReWind(CBTree(bpTree)->metadata);
 	ReWind(CBTree(bpTree)->data);
-	FileRead(&page, sizeof(BTreePage), 1, CBTree(bpTree)->data, res);
 
-	printf("key: %i\n", key);
-	for(i = 0; i < (M_KEY + M_POINTER); i++)
+	FileRead(&mdata, sizeof(MetaData), 1, CBTree(bpTree)->metadata, res);
+	FileRead(&page, sizeof(BTreeNode), 1, CBTree(bpTree)->index, res);
+
+	ReWind(CBTree(bpTree)->data);
+	ReWind(CBTree(bpTree)->metadata);
+
+	if(mdata.stat == LEAF && mdata.nextAddressAvailable == None)
 	{
-		printf("%i\n", page.block[i]);
+		printf("skey: %i\n", key);
+		for(i = 1; i < (M_KEY + M_POINTER); i += 2)
+		{
+			if(page.block[i] == None)
+			{
+				page.block[i] = key;
+				FileWrite(data, CBTree(bpTree)->sizeData, 1, CBTree(bpTree)->data, res);
+				GetCurrentPStream(CBTree(bpTree)->data, mdata.nextAddressAvailable);
+				mdata.stat = ROOT;
+
+				FileWrite(&mdata, sizeof(MetaData), 1, CBTree(bpTree)->metadata, res);
+				break;
+			}
+		}
 	}
+	else
+	{
+		
+	}	
 }

@@ -14,6 +14,7 @@
 
 typedef void* Object;
 typedef unsigned char Byte;
+typedef long long Address;
 
 
 

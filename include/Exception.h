@@ -204,7 +204,31 @@
 		abort();										\
 	}
 
-
+#define GetCurrentPStream(file, res)					\
+														\
+	try													\
+	{													\
+		if(file != NULL)								\
+		{												\
+			res = ftell(file);							\
+			if(res == -1L)								\
+			{											\
+				throw(__GetCurrentPositionStreamException__);	\
+			}													\
+		}														\
+		else													\
+		{														\
+			throw(__NullPointerException__);					\
+		}														\
+	}															\
+	catch(GetCurrentPositionStreamException)					\
+	{															\
+		PrintExceptionStdOut(GetCurrentPositionStreamException);\
+	}															\
+	catch(NullPointerException)									\
+	{															\
+		PrintExceptionStdOut(NullPointerException);				\
+	}															
 
 extern struct ObjException
 {
@@ -233,7 +257,8 @@ extern enum ObjExceptionType
 	__ListRemoveException__,
 	__ListInsertTopException__,
 	__ListInsertBottomException__,
-	__ListInsertException__
+	__ListInsertException__,
+	__GetCurrentPositionStreamException__
 }ExceptionType;
 
 
@@ -255,5 +280,5 @@ extern struct ObjException ListRemoveException;
 extern struct ObjException ListInsertTopException;
 extern struct ObjException ListInsertBottomException;
 extern struct ObjException ListInsertException;
-
+extern struct ObjException GetCurrentPositionStreamException;
 #endif
